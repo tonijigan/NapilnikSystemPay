@@ -5,51 +5,52 @@ namespace IMJunior
 {
     public interface IPaySystem
     {
+        string Name { get; }
         void PaymentOperation();
     }
 
-    class PaySystem : IPaySystem
+    public interface IPaySystemCreate
+    {
+        IPaySystem Create();
+    }
+
+    class QIWI : IPaySystem
     {
         public string Name { get; private set; }
-
-        public PaySystem(string name)
+        public QIWI()
         {
-            Name = name;
+            Name = "QIWI";
         }
 
         public void PaymentOperation()
-        {
-            OnPaymentOperation();
-        }
-
-        protected virtual void OnPaymentOperation() { }
-    }
-
-    class QIWI : PaySystem
-    {
-        public QIWI(string name) : base(name) { }
-
-        protected override void OnPaymentOperation()
         {
             Console.WriteLine($"Перевод на страницу {Name}...");
         }
     }
 
-    class WebMoney : PaySystem
+    class WebMoney : IPaySystem
     {
-        public WebMoney(string name) : base(name) { }
+        public string Name { get; private set; }
+        public WebMoney()
+        {
+            Name = "WebMoney";
+        }
 
-        protected override void OnPaymentOperation()
+        public void PaymentOperation()
         {
             Console.WriteLine($"Вызов API {Name}...");
         }
     }
 
-    class Card : PaySystem
+    class Card : IPaySystem
     {
-        public Card(string name) : base(name) { }
+        public string Name { get; private set; }
+        public Card()
+        {
+            Name = "Card";
+        }
 
-        protected override void OnPaymentOperation()
+        public void PaymentOperation()
         {
             Console.WriteLine($"Вызов API банка эмиттера карты {Name}...");
         }
@@ -59,10 +60,10 @@ namespace IMJunior
     {
         static void Main(string[] args)
         {
-            List<PaySystem> paySystems = new List<PaySystem>();
-            paySystems.Add(new QIWI("QIWI"));
-            paySystems.Add(new WebMoney("WebMoney"));
-            paySystems.Add(new Card("Card"));
+            List<IPaySystem> paySystems = new List<IPaySystem>();
+            paySystems.Add(new QIWI());
+            paySystems.Add(new WebMoney());
+            paySystems.Add(new Card());
 
             var orderForm = new OrderForm(paySystems);
             var paymentHandler = new PaymentHandler(paySystems);
@@ -82,9 +83,9 @@ namespace IMJunior
 
     class OrderForm
     {
-        private List<PaySystem> _paySystems;
+        private List<IPaySystem> _paySystems;
 
-        public OrderForm(List<PaySystem> paySystems)
+        public OrderForm(List<IPaySystem> paySystems)
         {
             _paySystems = paySystems;
         }
@@ -101,13 +102,13 @@ namespace IMJunior
 
         public void SystemOperation()
         {
-            if (TryGetSystemPay(out PaySystem paySystem) == true)
+            if (TryGetSystemPay(out IPaySystem paySystem) == true)
                 paySystem.PaymentOperation();
             else
                 Console.WriteLine("Вы ввели не верные данные!");
         }
 
-        private bool TryGetSystemPay(out PaySystem paySystem)
+        private bool TryGetSystemPay(out IPaySystem paySystem)
         {
             paySystem = null;
             Console.WriteLine("Какое системой вы хотите совершить оплату?");
@@ -125,9 +126,9 @@ namespace IMJunior
 
     class PaymentHandler
     {
-        private List<PaySystem> _paySystem;
+        private List<IPaySystem> _paySystem;
 
-        public PaymentHandler(List<PaySystem> paySystems) => _paySystem = paySystems;
+        public PaymentHandler(List<IPaySystem> paySystems) => _paySystem = paySystems;
 
         public void ShowPaymentResult(string systemId)
         {
