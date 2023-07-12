@@ -6,6 +6,7 @@ namespace IMJunior
     public interface IPaySystem
     {
         string Name { get; }
+
         void PaymentOperation();
     }
 
@@ -14,104 +15,65 @@ namespace IMJunior
         IPaySystem Create();
     }
 
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            List<IPaySystem> paySystems = new List<IPaySystem> { new QIWI(), new WebMoney(), new Card() };
+            var orderForm = new OrderForm(paySystems);
+            orderForm.ShowForm();
+            var newSystemPayCreate = new SystemPayCreate(paySystems).Create();
+            newSystemPayCreate?.PaymentOperation();
+            var paymentHandler = new PaymentHandler(paySystems);
+            paymentHandler.ShowPaymentResult(newSystemPayCreate);
+        }
+    }
+
     class QIWI : IPaySystem
     {
         public string Name { get; private set; }
-        public QIWI()
-        {
-            Name = "QIWI";
-        }
 
-        public void PaymentOperation()
-        {
-            Console.WriteLine($"Перевод на страницу {Name}...");
-        }
+        public QIWI() => Name = "QIWI";
+
+        public void PaymentOperation() => Console.WriteLine($"\nПеревод на страницу {Name}...\n");
     }
 
     class WebMoney : IPaySystem
     {
         public string Name { get; private set; }
-        public WebMoney()
-        {
-            Name = "WebMoney";
-        }
 
-        public void PaymentOperation()
-        {
-            Console.WriteLine($"Вызов API {Name}...");
-        }
+        public WebMoney() => Name = "WebMoney";
+
+        public void PaymentOperation() => Console.WriteLine($"\nВызов API {Name}...\n");
     }
 
     class Card : IPaySystem
     {
         public string Name { get; private set; }
-        public Card()
-        {
-            Name = "Card";
-        }
 
-        public void PaymentOperation()
-        {
-            Console.WriteLine($"Вызов API банка эмиттера карты {Name}...");
-        }
+        public Card() => Name = "Card";
+
+        public void PaymentOperation() => Console.WriteLine($"\nВызов API банка эмиттера карты {Name}...\n");
     }
 
-    class Program
-    {
-        static void Main(string[] args)
-        {
-            List<IPaySystem> paySystems = new List<IPaySystem>();
-            paySystems.Add(new QIWI());
-            paySystems.Add(new WebMoney());
-            paySystems.Add(new Card());
-
-            var orderForm = new OrderForm(paySystems);
-            var paymentHandler = new PaymentHandler(paySystems);
-
-            orderForm.ShowForm();
-            orderForm.SystemOperation();
-            //if (systemId == "QIWI")
-            //    Console.WriteLine("Перевод на страницу QIWI...");
-            //else if (systemId == "WebMoney")
-            //    Console.WriteLine("Вызов API WebMoney...");
-            //else if (systemId == "Card")
-            //    Console.WriteLine("Вызов API банка эмитера карты Card...");
-
-            // paymentHandler.ShowPaymentResult(systemId);
-        }
-    }
-
-    class OrderForm
+    class SystemPayCreate : IPaySystemCreate
     {
         private List<IPaySystem> _paySystems;
 
-        public OrderForm(List<IPaySystem> paySystems)
-        {
-            _paySystems = paySystems;
-        }
+        public SystemPayCreate(List<IPaySystem> paySystems) => _paySystems = paySystems;
 
-        public void ShowForm()
-        {
-            Console.WriteLine("Мы принимаем: ");
-
-            foreach (var paySystem in _paySystems)
-            {
-                Console.WriteLine(paySystem.Name);
-            }
-        }
-
-        public void SystemOperation()
+        public IPaySystem Create()
         {
             if (TryGetSystemPay(out IPaySystem paySystem) == true)
-                paySystem.PaymentOperation();
-            else
-                Console.WriteLine("Вы ввели не верные данные!");
+                return paySystem;
+
+            return null;
         }
 
         private bool TryGetSystemPay(out IPaySystem paySystem)
         {
             paySystem = null;
-            Console.WriteLine("Какое системой вы хотите совершить оплату?");
+            Console.WriteLine("Какое системой вы хотите совершить оплату?\n");
             string systemName = Console.ReadLine();
 
             foreach (var systemPay in _paySystems)
@@ -124,24 +86,44 @@ namespace IMJunior
         }
     }
 
+    class OrderForm
+    {
+        private List<IPaySystem> _paySystems;
+
+        public OrderForm(List<IPaySystem> paySystems) => _paySystems = paySystems;
+
+        public void ShowForm()
+        {
+            Console.WriteLine("Мы принимаем:\n");
+
+            foreach (var paySystem in _paySystems) Console.WriteLine(paySystem.Name + "\n");
+        }
+    }
+
     class PaymentHandler
     {
-        private List<IPaySystem> _paySystem;
+        private List<IPaySystem> _paySystems;
 
-        public PaymentHandler(List<IPaySystem> paySystems) => _paySystem = paySystems;
+        public PaymentHandler(List<IPaySystem> paySystems) => _paySystems = paySystems;
 
-        public void ShowPaymentResult(string systemId)
+        public void ShowPaymentResult(IPaySystem paySystemCreated)
         {
-            Console.WriteLine($"Вы оплатили с помощью {systemId}");
+            if (PaymentVerification(paySystemCreated) == true)
+            {
+                Console.WriteLine($"Вы оплатили с помощью {paySystemCreated.Name}");
+                Console.WriteLine($"Проверка платежа через {paySystemCreated.Name} ...");
+                Console.WriteLine("Оплата прошла успешно!\n");
+            }
+        }
 
-            if (systemId == "QIWI")
-                Console.WriteLine("Проверка платежа через QIWI...");
-            else if (systemId == "WebMoney")
-                Console.WriteLine("Проверка платежа через WebMoney...");
-            else if (systemId == "Card")
-                Console.WriteLine("Проверка платежа через Card...");
-
-            Console.WriteLine("Оплата прошла успешно!");
+        private bool PaymentVerification(IPaySystem paySystemCreated)
+        {
+            foreach (var paySystem in _paySystems)
+            {
+                if (paySystem == paySystemCreated)
+                    return true;
+            }
+            return paySystemCreated != null;
         }
     }
 }
